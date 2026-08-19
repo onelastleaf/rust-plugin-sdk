@@ -46,6 +46,11 @@ async fn run_session(plugin: Plugin, endpoint: String) -> Result<(), SdkError> {
     let sender = SessionSender::new(wire_tx, identity.clone());
 
     let first = receive(&mut incoming, &identity, 0, u32::MAX, u32::MAX).await?;
+    if first.session_id.is_empty() || first.plugin_instance_id.is_empty() {
+        return Err(SdkError::Protocol(
+            "HostHello envelope omitted its session or instance identity".to_owned(),
+        ));
+    }
     if first.reply_to.is_some() {
         return Err(SdkError::Protocol(
             "HostHello must not reply to another message".to_owned(),
@@ -60,8 +65,8 @@ async fn run_session(plugin: Plugin, endpoint: String) -> Result<(), SdkError> {
     let trace =
         validation::trace(&first, hello.maximum_call_depth, hello.maximum_causal_depth)?.clone();
     *identity.write().await = SessionIdentity {
-        session_id: hello.session_id.clone(),
-        instance_id: hello.plugin_instance_id.clone(),
+        session_id: first.session_id.clone(),
+        instance_id: first.plugin_instance_id.clone(),
     };
     let effective_name = hello
         .plugin_name
