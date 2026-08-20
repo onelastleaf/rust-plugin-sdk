@@ -78,7 +78,6 @@ impl PluginBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::PROTOCOL_SCHEMA_SHA256;
 
     #[test]
     fn builder_rejects_invalid_identity_and_duplicate_actions() {
@@ -92,18 +91,6 @@ mod tests {
                     Ok(ActionResult::default())
                 })
                 .is_err()
-        );
-    }
-
-    #[test]
-    fn published_fingerprint_is_exact() {
-        let actual = PROTOCOL_SCHEMA_SHA256
-            .iter()
-            .map(|byte| format!("{byte:02x}"))
-            .collect::<String>();
-        assert_eq!(
-            actual,
-            "9b236b37455965858413f5717a88e28568a459e81e87a28ff77be8845bcff75a"
         );
     }
 }

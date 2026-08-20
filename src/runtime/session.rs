@@ -4,10 +4,7 @@ use tokio::sync::{RwLock, mpsc, watch};
 use tokio_stream::{StreamExt as _, wrappers::ReceiverStream};
 use tonic::{Request, transport::Endpoint};
 
-use crate::{
-    PROTOCOL_SCHEMA_SHA256,
-    protocol::{self as oll, plugin_envelope, plugin_runtime_client::PluginRuntimeClient},
-};
+use crate::protocol::{self as oll, plugin_envelope, plugin_runtime_client::PluginRuntimeClient};
 
 use super::{
     ActionContext, Cancellation, OUTGOING_CAPACITY, SdkError,
@@ -85,7 +82,6 @@ async fn run_session(plugin: Plugin, endpoint: String) -> Result<(), SdkError> {
                 plugin_name: Some(oll::PluginName {
                     value: effective_name,
                 }),
-                protocol_schema_sha256: PROTOCOL_SCHEMA_SHA256.to_vec(),
                 actions: plugin
                     .actions
                     .iter()

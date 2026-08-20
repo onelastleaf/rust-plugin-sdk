@@ -90,7 +90,6 @@ format_version = 1
 [plugin]
 id = "org.example.echo"
 name = "echo-plugin"
-protocol_fingerprint = "9b236b37455965858413f5717a88e28568a459e81e87a28ff77be8845bcff75a"
 
 [source]
 checkout = "source"
@@ -105,9 +104,12 @@ cargo = "Install the Rust toolchain and ensure cargo is in PATH."
 argv = ["{install}/bin/echo-plugin"]
 ```
 
-This fingerprint belongs to SDK version `0.1.0` and must exactly match the oll
-build that will host the plugin. A mismatch is rejected during the handshake
-instead of allowing two incompatible protocol versions to communicate.
+This SDK follows the canonical protobuf wire contract. It never computes,
+embeds, publishes, or compares a schema hash or fingerprint. Descriptor-wide
+hashes change for compatible additions and unrelated services, so they reject
+valid peers. Protocol changes instead preserve field numbers and wire types,
+give additions safe absent semantics, and tolerate unknown fields. Exact SDK
+pins provide reproducible builds; they are not protobuf API versioning.
 
 ## Install and run the plugin with oll
 

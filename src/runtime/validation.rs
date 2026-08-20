@@ -1,9 +1,6 @@
 use std::net::IpAddr;
 
-use crate::{
-    PROTOCOL_SCHEMA_SHA256,
-    protocol::{self as oll, PluginEnvelope},
-};
+use crate::protocol::{self as oll, PluginEnvelope};
 
 use super::SdkError;
 
@@ -34,7 +31,6 @@ pub(super) fn endpoint(value: &str) -> Result<String, SdkError> {
 
 pub(super) fn host_hello(plugin_id: &str, hello: &oll::HostHello) -> Result<(), SdkError> {
     if hello.node.is_none()
-        || hello.protocol_schema_sha256.as_slice() != PROTOCOL_SCHEMA_SHA256
         || hello.plugin_id.as_ref().map(|value| value.value.as_str()) != Some(plugin_id)
         || hello
             .plugin_name
