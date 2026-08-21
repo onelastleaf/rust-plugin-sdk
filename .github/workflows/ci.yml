@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Rust ${{ matrix.rust }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rust: stable
+            lint: true
+          - os: ubuntu-latest
+            rust: 1.88.0
+            lint: false
+          - os: macos-latest
+            rust: stable
+            lint: false
+          - os: windows-latest
+            rust: stable
+            lint: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust ${{ matrix.rust }}
+        run: |
+          rustup toolchain install ${{ matrix.rust }} --profile minimal
+          rustup default ${{ matrix.rust }}
+
+      - name: Install lint components
+        if: matrix.lint
+        run: rustup component add rustfmt clippy
+
+      - name: Check formatting
+        if: matrix.lint
+        run: cargo fmt --all --check
+
+      - name: Run Clippy
+        if: matrix.lint
+        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test --locked --workspace --all-targets --all-features
