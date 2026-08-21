@@ -7,7 +7,7 @@ artifacts, heartbeat, and graceful shutdown.
 
 ## Build and test the SDK
 
-You need Rust 1.85 or newer (the crate uses the Rust 2024 edition). The build
+You need Rust 1.88 or newer (the current Tonic dependency requires it). The build
 uses a vendored `protoc`, so you do not need to install Protocol Buffers
 separately.
 
@@ -54,11 +54,8 @@ use onelastleaf_plugin_sdk::{
 async fn main() -> Result<(), SdkError> {
     Plugin::builder("org.example.echo", env!("CARGO_PKG_VERSION"))
         .action("echo", "Return the supplied arguments", |_context, arguments| async move {
-            Ok(ActionResult {
-                result: Some(ConfigValue {
-                    kind: Some(config_value::Kind::StringValue(arguments.join(" "))),
-                }),
-                artifacts: Vec::new(),
+            ActionResult::value(ConfigValue {
+                kind: Some(config_value::Kind::StringValue(arguments.join(" "))),
             })
         })?
         .build()?
@@ -69,6 +66,11 @@ async fn main() -> Result<(), SdkError> {
 
 The plugin ID passed to `Plugin::builder` must be the same immutable ID declared
 in `oll.toml`. Action names must be non-empty and unique.
+
+The runtime owns at most 256 concurrent action futures by default. Use
+`PluginBuilder::maximum_concurrent_jobs` to choose a tighter or larger bound;
+admission beyond that bound receives a retryable `UNAVAILABLE` response instead
+of creating an unbounded task.
 
 ### Add an existing Rust project by hand
 
@@ -108,8 +110,10 @@ This SDK follows the canonical protobuf wire contract. It never computes,
 embeds, publishes, or compares a schema hash or fingerprint. Descriptor-wide
 hashes change for compatible additions and unrelated services, so they reject
 valid peers. Protocol changes instead preserve field numbers and wire types,
-give additions safe absent semantics, and tolerate unknown fields. Exact SDK
-pins provide reproducible builds; they are not protobuf API versioning.
+give additions safe absent semantics, and tolerate unknown fields. Unknown enum
+values are retained when the current operation has safe semantics for them,
+such as a future nonzero cancellation reason or structured error code. Exact
+SDK pins provide reproducible builds; they are not protobuf API versioning.
 
 ## Install and run the plugin with oll
 
@@ -147,6 +151,10 @@ its own loopback gRPC server on an ephemeral port, and passes that address in
 `OLL_PLUGIN_ENDPOINT`. The SDK reads the variable and connects when `run()` is
 called. You normally should not set the variable or launch the binary by hand.
 
+The SDK does not impose a fixed encoded-size limit on gRPC envelopes. Effective
+limits come from the gRPC implementation and available memory; artifact bytes
+still use the negotiated bounded-chunk transfer protocol.
+
 stdin is also part of the runtime contract: oll keeps it open as a liveness
 pipe, and the plugin exits when it reaches EOF. stdout and stderr are captured
 in the per-plugin log. Application input arrives as action arguments or through
@@ -155,5 +163,5 @@ host calls, never through stdin.
 Inside an action, `ActionContext` gives you cooperative cancellation, the job
 deadline and trace context, current plugin configuration, configuration-function
 calls, structured logging, document host calls, and verified artifact transfer.
-See [`examples/conformance.rs`](examples/conformance.rs) for all of those pieces
-working together.
+The project produced by `oll plugin new` is the supported starting point for a
+complete plugin executable.

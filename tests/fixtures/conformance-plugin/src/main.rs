@@ -12,15 +12,11 @@ use sha2::{Digest, Sha256};
 async fn main() -> Result<(), SdkError> {
     Plugin::builder("org.onelastleaf.conformance", "0.1.0")
         .action("echo", "Echo arguments", |_, arguments| async move {
-            Ok(ActionResult {
-                result: Some(string_value(arguments.join(" "))),
-                artifacts: Vec::new(),
-            })
+            ActionResult::value(string_value(arguments.join(" ")))
         })?
         .action("wait", "Wait for cancellation", |context, _| async move {
-            let mut cancellation = context.cancellation;
-            cancellation.cancelled().await;
-            Ok(ActionResult::default())
+            context.cancellation().cancelled().await;
+            Ok(ActionResult::empty())
         })?
         .action(
             "host",
@@ -77,17 +73,13 @@ async fn main() -> Result<(), SdkError> {
                         HashMap::new(),
                     )
                     .await?;
-                Ok(ActionResult {
-                    result: Some(string_value(format!("{function_value}|{content}"))),
-                    artifacts: Vec::new(),
-                })
+                ActionResult::value(string_value(format!("{function_value}|{content}")))
             },
         )?
         .action(
             "artifact",
             "Exercise artifact transfer",
             |context, _| async move {
-                let chunks = vec![b"artifact ".to_vec(), b"payload".to_vec()];
                 let descriptor = oll::ArtifactDescriptor {
                     artifact_id: Some(oll::PluginArtifactId {
                         value: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa".to_owned(),
@@ -97,11 +89,13 @@ async fn main() -> Result<(), SdkError> {
                     size_bytes: 16,
                     sha256: Sha256::digest(b"artifact payload").to_vec(),
                 };
-                context.store_artifact(descriptor.clone(), chunks).await?;
-                Ok(ActionResult {
-                    result: Some(string_value("artifact")),
-                    artifacts: vec![descriptor],
-                })
+                let stored = context
+                    .store_artifact(
+                        descriptor,
+                        std::io::Cursor::new(b"artifact payload".to_vec()),
+                    )
+                    .await?;
+                Ok(ActionResult::value(string_value("artifact"))?.with_artifact(stored))
             },
         )?
         .build()?
