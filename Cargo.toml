@@ -5,10 +5,10 @@ edition = "2024"
 rust-version = "1.88"
 description = "Rust SDK for onelastleaf process plugins"
 repository = "https://github.com/onelastleaf/rust-plugin-sdk"
-license = "GPL-3.0-only"
+license = "GPL-3.0-or-later"
 keywords = ["onelastleaf", "plugin", "grpc"]
 categories = ["api-bindings", "asynchronous"]
-include = ["build.rs", "proto/oll", "src", "README.md", "LICENSE"]
+include = ["build.rs", "proto/oll", "src", "CHANGELOG.md", "README.md", "LICENSE"]
 
 [workspace]
 members = ["tests/fixtures/conformance-plugin"]
